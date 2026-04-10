@@ -1,0 +1,16 @@
+{
+  "sent_reminders": {},
+  "sent_daily": {},
+  "seen_events": [
+    "2026-04-08T20:00:00+02:00::USD::fomc meeting minutes",
+    "2026-04-06T19:00:00+02:00::USD::president trump speaks"
+  ],
+  "sent_releases": {},
+  "sent_events": [],
+  "sent_critical_alerts": [
+    "2026-04-06T19:00:00+02:00::USD::president trump speaks",
+    "2026-04-08T20:00:00+02:00::USD::fomc meeting minutes"
+  ],
+  "source_failures": 0,
+  "last_source_alert": null
+}
