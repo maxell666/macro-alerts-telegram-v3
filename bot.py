@@ -149,6 +149,7 @@ def default_state() -> dict:
         "sent_daily": {},
         "seen_events": [],
         "sent_releases": {},
+        "sent_events": [],
         "source_failures": 0,
         "last_source_alert": None,
     }
@@ -174,6 +175,8 @@ def ensure_state(state: dict) -> dict:
         state["source_failures"] = 0
     if state["last_source_alert"] is not None and not isinstance(state["last_source_alert"], str):
         state["last_source_alert"] = None
+    if not isinstance(state["sent_events"], list):
+        state["sent_events"] = []
 
     return state
 
@@ -753,6 +756,10 @@ def main():
 
         for dt, ev in events:
             key = event_key(dt, ev)
+            
+            if key in state["sent_events"]:
+                print("GLOBAL SKIP DUPLICATE |", key)
+                continue
 
             if key not in seen:
                 new_events_count += 1
@@ -770,6 +777,7 @@ def main():
                 if should_send_new_event_alert(now, dt, ev):
                     print("NEW EVENT ALERT SENT |", key)
                     tg_send(format_new_event_alert(dt, ev))
+                    state["sent_events"].append(key)
                     new_alerts_sent += 1
 
                 seen.add(key)
@@ -808,7 +816,8 @@ def main():
                 )
                 state["last_source_alert"] = now.isoformat()
                 print("SOURCE ALERT SENT")
-
+                
+        state["sent_events"] = state["sent_events"][-500:]
         save_state(state)
         print("STATE SAVED AFTER FETCH ERROR")
         print("========== RUN END ==========")
@@ -847,6 +856,7 @@ def main():
                     print("REMINDER SENT |", key, "| minutes_left =", minutes_left)
                     tg_send(format_macro_alert(dt, ev, minutes_left))
                     state["sent_reminders"][key] = now.isoformat()
+                    state["sent_events"].append(key)
                     reminders_sent_now += 1
 
         # ----- RELEASE -----
@@ -874,6 +884,7 @@ def main():
         if actual and actual not in {"-", "—"}:
             tg_send(format_release_alert(dt, ev))
             state["sent_releases"][key] = now.isoformat()
+            state["sent_events"].append(key)
             releases_sent_now += 1
             print("RELEASE SENT |", key)
         else:
