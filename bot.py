@@ -795,8 +795,6 @@ def main():
             if key in state["sent_events"]:
                 print("GLOBAL SKIP DUPLICATE |", key)
                 continue
-
-            if key not in seen:
                 
             # 🔥 ALERTE IMMÉDIATE CRITIQUE
             if is_ultra_critical_event(ev["title"]):
