@@ -263,7 +263,16 @@ def event_family(title: str) -> str:
     return t   # fallback
 
 def is_critical_event(title: str) -> bool:
-    return True
+    t = normalize_event_title(title)
+
+    return (
+        "powell" in t
+        or "lagarde" in t
+        or "trump" in t
+        or "fomc" in t
+        or "interest rate" in t
+        or "rate decision" in t
+    )
 
 def is_allowed_event(ev: dict) -> bool:
     impact = (ev.get("impact") or "").strip()
@@ -977,4 +986,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
