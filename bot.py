@@ -43,7 +43,7 @@ print("STATE FILE:", STATE_FILE)
 ALLOWED_CURRENCIES = {"USD", "EUR", "GBP"}
 WATCHED_ASSETS = {"EURUSD", "GBPUSD", "XAUUSD", "DE30"}
 
-REMINDER_LEAD_MIN = 15
+REMINDER_LEAD_MIN = 120
 SOURCE_FAIL_ALERT_AFTER = 3  # nb d'échecs consécutifs avant alerte Telegram
 
 CRITICAL_KEYWORDS = ["speaks", "speech", "press conference", "testifies", "hearing"]
