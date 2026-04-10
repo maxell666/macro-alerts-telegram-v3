@@ -224,6 +224,28 @@ def normalize_event_title(title: str) -> str:
     s = re.sub(r"\s+", " ", s)
     return s
 
+def event_family(title: str) -> str:
+    t = normalize_event_title(title)
+
+    if "cpi" in t:
+        return "CPI"
+    if "ppi" in t:
+        return "PPI"
+    if "pce" in t:
+        return "PCE"
+    if "pmi" in t:
+        return "PMI"
+    if "gdp" in t:
+        return "GDP"
+    if "retail sales" in t:
+        return "RETAIL"
+    if "non farm" in t or "nfp" in t:
+        return "NFP"
+    if "unemployment" in t or "jobless" in t:
+        return "LABOR"
+
+    return t  # fallback
+
 
 def is_critical_event(title: str) -> bool:
     t = normalize_event_title(title)
@@ -842,21 +864,44 @@ def main():
     # 3) Rappels T-15 + releases
     reminders_sent_now = 0
     releases_sent_now = 0
+    
+    from collections import defaultdict
+
+    grouped_events = defaultdict(list)
 
     for dt, ev in events:
+        fam = event_family(ev["title"])
+        key = (dt, ev["country"], fam)
+        grouped_events[key].append(ev)
+
+    for (dt, country, fam), group in grouped_events.items():
+        ev = group[0]
         key = event_key(dt, ev)
 
         # ----- REMINDER -----
         if is_relevant_event(ev) or ev["impact"] == "High":
             reminder_time = dt - timedelta(minutes=REMINDER_LEAD_MIN)
 
+            group_key = f"{dt.isoformat()}::{country}::{fam}"
+
             if reminder_time <= now < dt:
-                if key not in state["sent_reminders"]:
+                if group_key not in state["sent_reminders"]:
                     minutes_left = max(0, int((dt - now).total_seconds() / 60))
-                    print("REMINDER SENT |", key, "| minutes_left =", minutes_left)
-                    tg_send(format_macro_alert(dt, ev, minutes_left))
-                    state["sent_reminders"][key] = now.isoformat()
-                    state["sent_events"].append(key)
+
+                    titles = [smart_translate_event(e["title"]) for e in group]
+                    titles_block = "\n".join(f"• {t}" for t in titles)
+
+                    msg = (
+                        f"🚨 ALERTE MACRO\n\n"
+                        f"⏰ Dans {minutes_left} min — {dt.strftime('%H:%M')} (Paris)\n\n"
+                        f"{flag_for_currency(country)} {country}\n\n"
+                        f"{fam}:\n{titles_block}"
+                    )
+
+                    print("REMINDER GROUP SENT |", group_key)
+
+                    tg_send(msg)
+                    state["sent_reminders"][group_key] = now.isoformat()
                     reminders_sent_now += 1
 
         # ----- RELEASE -----
