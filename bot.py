@@ -227,24 +227,37 @@ def normalize_event_title(title: str) -> str:
 def event_family(title: str) -> str:
     t = normalize_event_title(title)
 
+    # inflation
     if "cpi" in t:
         return "CPI"
     if "ppi" in t:
         return "PPI"
     if "pce" in t:
         return "PCE"
+
+    # PMI
     if "pmi" in t:
         return "PMI"
+
+    # GDP
     if "gdp" in t:
         return "GDP"
+
+    # retail
     if "retail sales" in t:
         return "RETAIL"
+
+    # emploi US
     if "non farm" in t or "nfp" in t:
         return "NFP"
     if "unemployment" in t or "jobless" in t:
         return "LABOR"
 
-    return t  # fallback
+    # 🔥 AJOUT IMPORTANT (UoM)
+    if "uom" in t or "university of michigan" in t:
+        return "UOM"
+
+    return t   # fallback
 
 
 def is_critical_event(title: str) -> bool:
