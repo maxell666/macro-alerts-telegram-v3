@@ -43,7 +43,7 @@ print("STATE FILE:", STATE_FILE)
 ALLOWED_CURRENCIES = {"USD", "EUR", "GBP"}
 WATCHED_ASSETS = {"EURUSD", "GBPUSD", "XAUUSD", "DE30"}
 
-REMINDER_LEAD_MIN = 120
+REMINDER_LEAD_MIN = 15
 SOURCE_FAIL_ALERT_AFTER = 3  # nb d'échecs consécutifs avant alerte Telegram
 
 CRITICAL_KEYWORDS = ["speaks", "speech", "press conference", "testifies", "hearing"]
@@ -150,6 +150,7 @@ def default_state() -> dict:
         "seen_events": [],
         "sent_releases": {},
         "sent_events": [],
+        "sent_critical_alerts": [],
         "source_failures": 0,
         "last_source_alert": None,
     }
@@ -162,7 +163,9 @@ def ensure_state(state: dict) -> dict:
 
     for k, v in base.items():
         state.setdefault(k, v)
-
+        
+    if not isinstance(state["sent_critical_alerts"], list):
+        state["sent_critical_alerts"] = []
     if not isinstance(state["sent_reminders"], dict):
         state["sent_reminders"] = {}
     if not isinstance(state["sent_daily"], dict):
@@ -259,11 +262,8 @@ def event_family(title: str) -> str:
 
     return t   # fallback
 
-
 def is_critical_event(title: str) -> bool:
-    t = normalize_event_title(title)
-    return any(k in t for k in CRITICAL_KEYWORDS)
-
+    return True
 
 def is_allowed_event(ev: dict) -> bool:
     impact = (ev.get("impact") or "").strip()
@@ -797,6 +797,25 @@ def main():
                 continue
 
             if key not in seen:
+                
+            # 🔥 ALERTE IMMÉDIATE CRITIQUE
+            if is_ultra_critical_event(ev["title"]):
+                if key not in state["sent_critical_alerts"]:
+
+                    msg = (
+                        "🚨 ALERTE MACRO CRITIQUE (IMMÉDIATE)\n\n"
+                        f"{flag_for_currency(ev['country'])} {ev['country']}\n"
+                        f"{smart_translate_event(ev['title'])}\n"
+                        f"({ev['title']})\n\n"
+                        f"🕒 {dt.strftime('%H:%M')} (Paris)"
+                    )
+
+                    print("CRITICAL ALERT SENT |", key)
+                    tg_send(msg)
+
+                    state["sent_critical_alerts"].append(key)
+        
+        
                 new_events_count += 1
                 print(
                     "NEW EVENT |",
