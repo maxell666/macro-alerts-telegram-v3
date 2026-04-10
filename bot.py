@@ -1,3 +1,4 @@
+TEST_MODE = True
 import os
 import re
 import json
@@ -7,7 +8,23 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
+import os
+import requests
 
+if TEST_MODE:
+    BOT_TOKEN = os.environ["TG_BOT_TOKEN"]
+    CHAT_ID = os.environ["TG_CHAT_ID"]
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+    requests.post(url, json={
+        "chat_id": CHAT_ID,
+        "text": "✅ V3 connecté à GitHub"
+    })
+
+    print("TEST OK - EXIT")
+    exit()
+    
 TZ = ZoneInfo("Europe/Paris")
 
 BOT_TOKEN = os.environ["TG_BOT_TOKEN"]
