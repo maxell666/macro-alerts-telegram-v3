@@ -774,11 +774,11 @@ def main():
                     ev["title"],
                 )
 
-                if should_send_new_event_alert(now, dt, ev):
-                    print("NEW EVENT ALERT SENT |", key)
-                    tg_send(format_new_event_alert(dt, ev))
-                    state["sent_events"].append(key)
-                    new_alerts_sent += 1
+              # NEW EVENT ALERT DISABLED (V3)
+              # if should_send_new_event_alert(now, dt, ev):
+              #     print("NEW EVENT ALERT SENT |", key)
+              #     tg_send(format_new_event_alert(dt, ev))
+              #     new_alerts_sent += 1
 
                 seen.add(key)
 
