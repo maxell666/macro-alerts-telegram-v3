@@ -1,4 +1,4 @@
-TEST_MODE = True
+TEST_MODE = False
 import os
 import re
 import json
@@ -36,7 +36,8 @@ FF_XML_URLS = [
     "https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.xml",
 ]
 
-STATE_FILE = Path.cwd() / "state.json"
+STATE_FILE = Path.cwd() / "state_v3.json"
+print("STATE FILE:", STATE_FILE)
 
 # Paramètres
 ALLOWED_CURRENCIES = {"USD", "EUR", "GBP"}
