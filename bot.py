@@ -797,7 +797,7 @@ def main():
                 continue
                 
             # 🔥 ALERTE IMMÉDIATE CRITIQUE
-            if is_ultra_critical_event(ev["title"]):
+            if is_critical_event(ev["title"]):
                 if key not in state["sent_critical_alerts"]:
 
                     msg = (
