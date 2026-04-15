@@ -10,10 +10,10 @@
     "2026-04-15": "2026-04-14T22:00:35.706595+02:00"
   },
   "seen_events": [
-    "2026-04-06T19:00:00+02:00::USD::president trump speaks",
-    "2026-04-08T20:00:00+02:00::USD::fomc meeting minutes",
+    "2026-04-17T20:00:00+02:00::USD::fomc member waller speaks",
     "2026-04-15T15:00:00+02:00::USD::president trump speaks",
-    "2026-04-17T20:00:00+02:00::USD::fomc member waller speaks"
+    "2026-04-08T20:00:00+02:00::USD::fomc meeting minutes",
+    "2026-04-06T19:00:00+02:00::USD::president trump speaks"
   ],
   "sent_releases": {},
   "sent_events": [],
