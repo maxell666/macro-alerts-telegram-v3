@@ -1,7 +1,8 @@
 {
   "sent_reminders": {
     "2026-04-14T14:30:00+02:00::USD::PPI": "2026-04-14T14:15:23.569720+02:00",
-    "2026-04-15T14:30:00+02:00::USD::empire state manufacturing index": "2026-04-15T14:15:25.238641+02:00"
+    "2026-04-15T14:30:00+02:00::USD::empire state manufacturing index": "2026-04-15T14:15:25.238641+02:00",
+    "2026-04-16T08:00:00+02:00::GBP::GDP": "2026-04-16T07:45:26.946903+02:00"
   },
   "sent_daily": {
     "2026-04-11": "2026-04-10T22:00:36.534116+02:00",
@@ -12,11 +13,11 @@
     "2026-04-16": "2026-04-15T22:00:36.343897+02:00"
   },
   "seen_events": [
-    "2026-04-15T12:00:00+02:00::USD::president trump speaks",
-    "2026-04-17T20:00:00+02:00::USD::fomc member waller speaks",
     "2026-04-06T19:00:00+02:00::USD::president trump speaks",
+    "2026-04-08T20:00:00+02:00::USD::fomc meeting minutes",
+    "2026-04-15T12:00:00+02:00::USD::president trump speaks",
     "2026-04-15T15:00:00+02:00::USD::president trump speaks",
-    "2026-04-08T20:00:00+02:00::USD::fomc meeting minutes"
+    "2026-04-17T20:00:00+02:00::USD::fomc member waller speaks"
   ],
   "sent_releases": {},
   "sent_events": [],
