@@ -961,7 +961,9 @@ def main():
 
             group_key = f"{dt.isoformat()}::{country}::{fam}"
 
-            if reminder_time <= now < dt:
+            delta_min = (dt - now).total_seconds() / 60
+
+            if 0 <= delta_min <= REMINDER_LEAD_MIN + 2:
                 if group_key not in state["sent_reminders"]:
                     minutes_left = max(0, int((dt - now).total_seconds() / 60))
                     
