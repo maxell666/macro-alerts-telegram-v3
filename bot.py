@@ -41,7 +41,7 @@ print("STATE FILE:", STATE_FILE)
 
 # Paramètres
 ALLOWED_CURRENCIES = {"USD", "EUR", "GBP"}
-WATCHED_ASSETS = {"EURUSD", "GBPUSD", "XAUUSD", "DE30"}
+WATCHED_ASSETS = {"EURUSD", "GBPUSD", "XAUUSD", "GER40", "SPX500", "NAS100", "US30"}
 
 REMINDER_LEAD_MIN = 15
 SOURCE_FAIL_ALERT_AFTER = 3  # nb d'échecs consécutifs avant alerte Telegram
@@ -265,13 +265,36 @@ def event_family(title: str) -> str:
 def is_critical_event(title: str) -> bool:
     t = normalize_event_title(title)
 
+    important_speakers = [
+        "trump",
+        "powell",
+        "waller",
+        "bostic",
+        "bowman",
+        "jefferson",
+        "barr",
+        "williams",
+        "kugler",
+        "lagarde",
+        "de guindos",
+        "schnabel",
+        "bailey",
+        "pill",
+        "fed",
+        "fomc",
+        "ecb",
+        "boe",
+    ]
+
     return (
-        "powell" in t
-        or "lagarde" in t
-        or "trump" in t
-        or "fomc" in t
+        any(name in t for name in important_speakers)
         or "interest rate" in t
         or "rate decision" in t
+        or "press conference" in t
+        or "speech" in t
+        or "speaks" in t
+        or "testifies" in t
+        or "hearing" in t
     )
 
 def is_allowed_event(ev: dict) -> bool:
@@ -547,9 +570,9 @@ def impacted_assets(currency: str) -> list[str]:
     c = (currency or "").upper()
 
     if c == "USD":
-        return ["EURUSD", "GBPUSD", "XAUUSD"]
+        return ["EURUSD", "GBPUSD", "XAUUSD", "GER40", "SPX500", "NAS100", "US30"]
     if c == "EUR":
-        return ["EURUSD", "DE30"]
+        return ["EURUSD", "GER40"]
     if c == "GBP":
         return ["GBPUSD"]
 
