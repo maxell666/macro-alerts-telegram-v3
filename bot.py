@@ -600,6 +600,44 @@ def format_macro_alert(dt_local: datetime, ev: dict, minutes_left: int) -> str:
         f"Actifs concernés\n{assets_block}"
     )
 
+def format_grouped_macro_alert(dt_local: datetime, country: str, fam: str, group: list[dict], minutes_left: int) -> str:
+    lines = []
+
+    for e in group:
+        title_fr = smart_translate_event(e["title"])
+        title_en = e["title"]
+
+        forecast = (e.get("forecast") or "").strip()
+        previous = (e.get("previous") or "").strip()
+
+        block = f"• {title_fr}\n  ({title_en})"
+
+        if forecast:
+            block += f"\n  📊 Prévision : {forecast}"
+        if previous:
+            block += f"\n  📊 Précédent : {previous}"
+
+        lines.append(block)
+
+    items_block = "\n\n".join(lines)
+
+    assets = []
+    for e in group:
+        for a in relevant_assets_for_event(e):
+            if a not in assets:
+                assets.append(a)
+
+    assets_block = "\n".join(f"• {a}" for a in assets) if assets else "• (aucun)"
+
+    return (
+        f"🚨 ALERTE MACRO\n\n"
+        f"⏰ Dans {minutes_left} min — {dt_local.strftime('%H:%M')} (Paris)\n\n"
+        f"{flag_for_currency(country)} {country}\n\n"
+        f"{fam}\n"
+        f"{items_block}\n\n"
+        f"Actifs concernés\n"
+        f"{assets_block}"
+    )
 
 def parse_ff_number(value):
     if not value:
@@ -926,17 +964,9 @@ def main():
             if reminder_time <= now < dt:
                 if group_key not in state["sent_reminders"]:
                     minutes_left = max(0, int((dt - now).total_seconds() / 60))
-
-                    titles = [smart_translate_event(e["title"]) for e in group]
-                    titles_block = "\n".join(f"• {t}" for t in titles)
-
-                    msg = (
-                        f"🚨 ALERTE MACRO\n\n"
-                        f"⏰ Dans {minutes_left} min — {dt.strftime('%H:%M')} (Paris)\n\n"
-                        f"{flag_for_currency(country)} {country}\n\n"
-                        f"{fam}:\n{titles_block}"
-                    )
-
+                    
+                    msg = format_grouped_macro_alert(dt, country, fam, group, minutes_left)
+                    
                     print("REMINDER GROUP SENT |", group_key)
 
                     tg_send(msg)
