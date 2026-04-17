@@ -879,7 +879,6 @@ def main():
                     ev["title"],
                 )
 
-                # Alerte immédiate uniquement pour les événements critiques
                 if is_critical_event(ev["title"]):
                     if key not in state["sent_critical_alerts"]:
                         msg = (
@@ -893,6 +892,14 @@ def main():
                         print("CRITICAL ALERT SENT |", key)
                         tg_send(msg)
                         state["sent_critical_alerts"].append(key)
+                        new_alerts_sent += 1
+
+                else:
+                    if should_send_new_event_alert(now, dt, ev):
+                        msg = format_new_event_alert(dt, ev)
+                        print("NEW EVENT ALERT SENT |", key)
+                        tg_send(msg)
+                        new_alerts_sent += 1
 
                 seen.add(key)
                  
