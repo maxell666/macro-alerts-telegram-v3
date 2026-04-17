@@ -879,7 +879,7 @@ def main():
                     ev["title"],
                 )
 
-                if is_critical_event(ev["title"]):
+                if True:
                     if key not in state["sent_critical_alerts"]:
                         msg = (
                             "🚨 ALERTE MACRO CRITIQUE (IMMÉDIATE)\n\n"
