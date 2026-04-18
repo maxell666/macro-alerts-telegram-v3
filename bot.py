@@ -583,6 +583,79 @@ def relevant_assets_for_event(ev: dict) -> list[str]:
     assets = impacted_assets(ev["country"])
     return [a for a in assets if a in WATCHED_ASSETS]
 
+def critical_trading_read(ev: dict) -> str:
+    title = normalize_event_title(ev.get("title", ""))
+    country = (ev.get("country") or "").upper()
+
+    if "trump" in title:
+        return (
+            "• Risque headline / volatilité brutale\n"
+            "• Réaction possible sur USD, or et indices US\n"
+            "• Attention aux mouvements rapides et contradictoires"
+        )
+
+    if any(x in title for x in ["powell", "fomc", "fed", "waller", "bostic", "bowman", "jefferson", "barr", "williams", "kugler"]):
+        return (
+            "• Sensible pour les anticipations de taux US\n"
+            "• Impact possible sur USD, XAUUSD et indices US\n"
+            "• Surveille surtout la tonalité hawkish / dovish"
+        )
+
+    if any(x in title for x in ["lagarde", "ecb", "de guindos", "schnabel"]):
+        return (
+            "• Peut faire bouger EURUSD et GER40\n"
+            "• Sensible si le ton change sur inflation / taux\n"
+            "• Attention aux accélérations juste après les headlines"
+        )
+
+    if any(x in title for x in ["bailey", "boe", "pill"]):
+        return (
+            "• Impact prioritaire sur GBPUSD\n"
+            "• Sensible aux attentes de taux UK\n"
+            "• Volatilité souvent rapide sur les commentaires clés"
+        )
+
+    if country == "USD":
+        return (
+            "• Volatilité probable sur USD\n"
+            "• Impact possible sur XAUUSD et indices US\n"
+            "• Prudence autour des premières réactions"
+        )
+
+    if country == "EUR":
+        return (
+            "• Peut faire bouger EURUSD et GER40\n"
+            "• Attention au momentum juste après publication"
+        )
+
+    if country == "GBP":
+        return (
+            "• Impact prioritaire sur GBPUSD\n"
+            "• Attention à la volatilité immédiate"
+        )
+
+    return "• Événement potentiellement volatil"
+
+
+def format_critical_alert(dt_local: datetime, ev: dict) -> str:
+    cur = ev["country"]
+    title = ev["title"]
+    title_fr = smart_translate_event(title)
+
+    assets = relevant_assets_for_event(ev)
+    assets_block = "\n".join(f"• {a}" for a in assets) if assets else "• (aucun)"
+
+    return (
+        "🔥 ALERTE MACRO CRITIQUE\n\n"
+        f"⏰ {dt_local.strftime('%H:%M')} (Paris)\n\n"
+        f"{flag_for_currency(cur)} {cur}\n"
+        f"{title_fr}\n"
+        f"({title})\n\n"
+        f"Actifs concernés\n"
+        f"{assets_block}\n\n"
+        f"Lecture trading\n"
+        f"{critical_trading_read(ev)}"
+    )
 
 def is_relevant_event(ev: dict) -> bool:
     return len(relevant_assets_for_event(ev)) > 0
@@ -881,15 +954,10 @@ def main():
 
                 if is_critical_event(ev["title"]):
                     if key not in state["sent_critical_alerts"]:
-                        msg = (
-                            "🚨 ALERTE MACRO CRITIQUE (IMMÉDIATE)\n\n"
-                            f"{flag_for_currency(ev['country'])} {ev['country']}\n"
-                            f"{smart_translate_event(ev['title'])}\n"
-                            f"({ev['title']})\n\n"
-                            f"🕒 {dt.strftime('%H:%M')} (Paris)"
-                        )
+                        msg = format_critical_alert(dt, ev)
 
                         print("CRITICAL ALERT SENT |", key)
+                        print("CRITICAL MSG PREVIEW:\n", msg)
                         tg_send(msg)
                         state["sent_critical_alerts"].append(key)
                         new_alerts_sent += 1
