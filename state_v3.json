@@ -8,17 +8,17 @@
     "2026-04-18": "2026-04-17T22:00:32.428088+02:00"
   },
   "seen_events": [
+    "2026-04-17T01:00:00+02:00::USD::president trump speaks",
     "2026-04-17T23:00:00+02:00::USD::president trump speaks",
-    "2026-04-14T14:30:00+02:00::USD::ppi m/m",
-    "2026-04-15T12:00:00+02:00::USD::president trump speaks",
-    "2026-04-16T08:00:00+02:00::GBP::gdp m/m",
-    "2026-04-16T14:30:00+02:00::USD::philly fed manufacturing index",
     "2026-04-16T14:30:00+02:00::USD::unemployment claims",
-    "2026-04-15T14:30:00+02:00::USD::empire state manufacturing index",
     "2026-04-17T20:00:00+02:00::USD::president trump speaks",
+    "2026-04-14T14:30:00+02:00::USD::ppi m/m",
+    "2026-04-16T14:30:00+02:00::USD::philly fed manufacturing index",
     "2026-04-14T14:30:00+02:00::USD::core ppi m/m",
+    "2026-04-16T08:00:00+02:00::GBP::gdp m/m",
     "2026-04-17T20:00:00+02:00::USD::fomc member waller speaks",
-    "2026-04-17T01:00:00+02:00::USD::president trump speaks"
+    "2026-04-15T12:00:00+02:00::USD::president trump speaks",
+    "2026-04-15T14:30:00+02:00::USD::empire state manufacturing index"
   ],
   "sent_releases": {},
   "sent_events": [],
