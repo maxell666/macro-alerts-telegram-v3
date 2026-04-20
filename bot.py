@@ -648,6 +648,40 @@ def format_critical_alert(dt_local: datetime, ev: dict) -> str:
         f"{critical_trading_read(ev)}"
     )
 
+def format_grouped_critical_alert(group: list[tuple[datetime, dict]]) -> str:
+    group = sorted(group, key=lambda x: x[0])
+    dt0, ev0 = group[0]
+
+    cur = ev0["country"]
+    title = ev0["title"]
+    title_fr = smart_translate_event(title)
+
+    times_block = "\n".join(
+        f"• {dt.strftime('%d/%m %H:%M')}"
+        for dt, _ in group
+    )
+
+    assets = []
+    for _, ev in group:
+        for a in relevant_assets_for_event(ev):
+            if a not in assets:
+                assets.append(a)
+
+    assets_block = "\n".join(f"• {a}" for a in assets) if assets else "• (aucun)"
+
+    return (
+        "🔥 ALERTE MACRO CRITIQUE\n\n"
+        f"{flag_for_currency(cur)} {cur}\n"
+        f"{title_fr}\n"
+        f"({title})\n\n"
+        f"🕒 Horaires\n"
+        f"{times_block}\n\n"
+        f"Actifs concernés\n"
+        f"{assets_block}\n\n"
+        f"Lecture trading\n"
+        f"{critical_trading_read(ev0)}"
+    )
+
 def is_relevant_event(ev: dict) -> bool:
     return len(relevant_assets_for_event(ev)) > 0
 
@@ -902,6 +936,15 @@ def main():
         events = fetch_events()
         print("FETCH OK | total filtered events =", len(events))
 
+        from collections import defaultdict
+
+        grouped_events = defaultdict(list)
+
+        for group in grouped_events.values():
+            dt, ev = group[0]
+            key_group = (ev["country"], normalize_event_title(ev["title"]))
+            grouped_events[key_group].append((dt, ev))
+
         for dt, ev in events:
             delta_min = round((dt - now).total_seconds() / 60, 1)
             print(
@@ -945,7 +988,7 @@ def main():
 
                 if is_critical_event(ev["title"]):
                     if key not in state["sent_critical_alerts"]:
-                        msg = format_critical_alert(dt, ev)
+                        msg = format_grouped_critical_alert(group)
 
                         print("CRITICAL ALERT SENT |", key)
                         print("CRITICAL MSG PREVIEW:\n", msg)
