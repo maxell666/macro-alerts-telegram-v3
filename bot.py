@@ -913,6 +913,21 @@ def should_send_new_event_alert(now: datetime, dt: datetime, ev: dict) -> bool:
     return False
 
 
+def ensure_state(state):
+    if not isinstance(state, dict):
+        state = {}
+
+    state.setdefault("sent_events", [])
+    state.setdefault("sent_critical_alerts", [])
+    state.setdefault("seen_events", [])
+    state.setdefault("sent_reminders", [])
+    state.setdefault("sent_daily", [])
+    state.setdefault("sent_releases", [])
+    state.setdefault("source_failures", 0)
+    state.setdefault("last_source_alert", None)
+
+    return state
+
 def main():
     state = load_state()
     state = ensure_state(state)
@@ -940,11 +955,12 @@ def main():
 
         grouped_events = defaultdict(list)
 
-        for group in grouped_events.values():
-            dt, ev = group[0]
+        # Regroupement correct des events
+        for dt, ev in events:
             key_group = (ev["country"], normalize_event_title(ev["title"]))
             grouped_events[key_group].append((dt, ev))
 
+        # Log de tous les events récupérés
         for dt, ev in events:
             delta_min = round((dt - now).total_seconds() / 60, 1)
             print(
@@ -972,7 +988,7 @@ def main():
 
             if key in state["sent_events"]:
                 print("GLOBAL SKIP DUPLICATE |", key)
-                ontinue
+                continue
 
             if key not in seen:
                 new_events_count += 1
@@ -984,28 +1000,26 @@ def main():
                     "|",
                     ev["impact"],
                     "|",
-                   ev["title"],
-            )
+                    ev["title"],
+                )
 
-        if is_critical_event(ev["title"]):
-            if key not in state["sent_critical_alerts"]:
-                msg = format_grouped_critical_alert(group)
+                if is_critical_event(ev["title"]):
+                    if key not in state["sent_critical_alerts"]:
+                        msg = format_grouped_critical_alert(group)
+                        print("CRITICAL ALERT SENT |", key)
+                        print("CRITICAL MSG PREVIEW:\n", msg)
+                        tg_send(msg)
+                        state["sent_critical_alerts"].append(key)
+                        new_alerts_sent += 1
+                else:
+                    if should_send_new_event_alert(now, dt, ev):
+                        msg = format_new_event_alert(dt, ev)
+                        print("NEW EVENT ALERT SENT |", key)
+                        tg_send(msg)
+                        new_alerts_sent += 1
 
-                print("CRITICAL ALERT SENT |", key)
-                print("CRITICAL MSG PREVIEW:\n", msg)
-                tg_send(msg)
-                state["sent_critical_alerts"].append(key)
-                new_alerts_sent += 1
+                seen.add(key)
 
-        else:
-            if should_send_new_event_alert(now, dt, ev):
-                msg = format_new_event_alert(dt, ev)
-                print("NEW EVENT ALERT SENT |", key)
-                tg_send(msg)
-                new_alerts_sent += 1
-
-        seen.add(key)
-                 
         state["seen_events"] = list(seen)[-300:]
         state["source_failures"] = 0
 
@@ -1013,7 +1027,6 @@ def main():
             "NEW EVENTS SUMMARY | found =", new_events_count,
             "| alerts_sent =", new_alerts_sent,
         )
-
     except Exception as e:
         state["source_failures"] = int(state.get("source_failures", 0)) + 1
         print("FETCH ERROR |", type(e).__name__, "|", str(e))
@@ -1042,6 +1055,7 @@ def main():
                 print("SOURCE ALERT SENT")
                 
         state["sent_events"] = state["sent_events"][-500:]
+        state["sent_critical_alerts"] = state["sent_critical_alerts"][-500:]
         save_state(state)
         print("STATE SAVED AFTER FETCH ERROR")
         print("========== RUN END ==========")
