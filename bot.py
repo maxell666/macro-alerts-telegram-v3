@@ -41,7 +41,7 @@ print("STATE FILE:", STATE_FILE)
 
 # Paramètres
 ALLOWED_CURRENCIES = {"USD", "EUR", "GBP"}
-WATCHED_ASSETS = {"EURUSD", "GBPUSD", "XAUUSD", "GER40", "SPX500", "NAS100", "US30"}
+WATCHED_ASSETS = {"DXY", "EURUSD", "GBPUSD", "XAUUSD", "GER40", "SPX500", "NAS100", "US30"}
 
 REMINDER_LEAD_MIN = 15
 SOURCE_FAIL_ALERT_AFTER = 3  # nb d'échecs consécutifs avant alerte Telegram
@@ -300,20 +300,11 @@ def is_critical_event(title: str) -> bool:
 def is_allowed_event(ev: dict) -> bool:
     impact = (ev.get("impact") or "").strip()
     currency = (ev.get("country") or "").strip().upper()
-    title = normalize_event_title(ev.get("title", ""))
 
-    if impact == "High":
-        return True
+    if currency not in {"USD", "EUR", "GBP"}:
+        return False
 
-    # Medium USD toujours autorisé
-    if impact == "Medium" and currency == "USD":
-        return True
-
-    # Medium EUR / GBP : on garde PMI
-    if impact == "Medium" and currency in {"EUR", "GBP"} and "pmi" in title:
-        return True
-
-    return False
+    return impact in {"High", "Medium"}
 
 
 def smart_translate_event(title: str) -> str:
@@ -570,11 +561,11 @@ def impacted_assets(currency: str) -> list[str]:
     c = (currency or "").upper()
 
     if c == "USD":
-        return ["EURUSD", "GBPUSD", "XAUUSD", "GER40", "SPX500", "NAS100", "US30"]
+        return ["DXY", "EURUSD", "GBPUSD", "XAUUSD", "GER40", "SPX500", "NAS100", "US30"]
     if c == "EUR":
-        return ["EURUSD", "GER40"]
+        return ["DXY", "EURUSD", "GER40"]
     if c == "GBP":
-        return ["GBPUSD"]
+        return ["DXY", "GBPUSD"]
 
     return []
 
