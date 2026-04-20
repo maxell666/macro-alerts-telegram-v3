@@ -59,6 +59,6 @@
     "2026-04-21T16:00:00+02:00::USD::fed chairman designate warsh testifies",
     "2026-04-22T19:30:00+02:00::EUR::ecb president lagarde speaks"
   ],
-  "source_failures": 27,
+  "source_failures": 28,
   "last_source_alert": "2026-04-20T12:30:27.457449+02:00"
 }
