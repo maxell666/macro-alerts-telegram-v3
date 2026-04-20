@@ -966,12 +966,13 @@ def main():
         new_events_count = 0
         new_alerts_sent = 0
 
-        for dt, ev in events:
+        for group in grouped_events.values():
+            dt, ev = group[0]
             key = event_key(dt, ev)
 
             if key in state["sent_events"]:
                 print("GLOBAL SKIP DUPLICATE |", key)
-                continue
+                ontinue
 
             if key not in seen:
                 new_events_count += 1
@@ -983,27 +984,27 @@ def main():
                     "|",
                     ev["impact"],
                     "|",
-                    ev["title"],
-                )
+                   ev["title"],
+            )
 
-                if is_critical_event(ev["title"]):
-                    if key not in state["sent_critical_alerts"]:
-                        msg = format_grouped_critical_alert(group)
+        if is_critical_event(ev["title"]):
+            if key not in state["sent_critical_alerts"]:
+                msg = format_grouped_critical_alert(group)
 
-                        print("CRITICAL ALERT SENT |", key)
-                        print("CRITICAL MSG PREVIEW:\n", msg)
-                        tg_send(msg)
-                        state["sent_critical_alerts"].append(key)
-                        new_alerts_sent += 1
+                print("CRITICAL ALERT SENT |", key)
+                print("CRITICAL MSG PREVIEW:\n", msg)
+                tg_send(msg)
+                state["sent_critical_alerts"].append(key)
+                new_alerts_sent += 1
 
-                else:
-                    if should_send_new_event_alert(now, dt, ev):
-                        msg = format_new_event_alert(dt, ev)
-                        print("NEW EVENT ALERT SENT |", key)
-                        tg_send(msg)
-                        new_alerts_sent += 1
+        else:
+            if should_send_new_event_alert(now, dt, ev):
+                msg = format_new_event_alert(dt, ev)
+                print("NEW EVENT ALERT SENT |", key)
+                tg_send(msg)
+                new_alerts_sent += 1
 
-                seen.add(key)
+        seen.add(key)
                  
         state["seen_events"] = list(seen)[-300:]
         state["source_failures"] = 0
@@ -1071,9 +1072,8 @@ def main():
     grouped_events = defaultdict(list)
 
     for dt, ev in events:
-        fam = event_family(ev["title"])
-        key = (dt, ev["country"], fam)
-        grouped_events[key].append(ev)
+        key_group = (ev["country"], normalize_event_title(ev["title"]))
+        grouped_events[key_group].append((dt, ev))
 
     for (dt, country, fam), group in grouped_events.items():
         ev = group[0]
