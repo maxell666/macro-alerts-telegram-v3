@@ -1,4 +1,5 @@
 TEST_MODE = False
+
 import os
 import re
 import json
@@ -7,9 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from pathlib import Path
-
-import os
-import requests
+from collections import defaultdict
 
 if TEST_MODE:
     BOT_TOKEN = os.environ["TG_BOT_TOKEN"]
@@ -17,14 +16,18 @@ if TEST_MODE:
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-    requests.post(url, json={
-        "chat_id": CHAT_ID,
-        "text": "✅ V3 connecté à GitHub"
-    })
+    requests.post(
+        url,
+        json={
+            "chat_id": CHAT_ID,
+            "text": "✅ V3 connecté à GitHub"
+        },
+        timeout=20,
+    )
 
     print("TEST OK - EXIT")
-    exit()
-    
+    raise SystemExit(0)
+
 TZ = ZoneInfo("Europe/Paris")
 
 BOT_TOKEN = os.environ["TG_BOT_TOKEN"]
@@ -142,6 +145,18 @@ EXACT_TRANSLATIONS = {
     "30-y bond auction": "Adjudication d’obligations à 30 ans",
 }
 
+FAMILY_LABELS = {
+    "CPI": "Inflation CPI",
+    "PPI": "Inflation PPI",
+    "PCE": "Indice PCE",
+    "PMI": "PMI",
+    "GDP": "PIB",
+    "RETAIL": "Ventes au détail",
+    "NFP": "Emploi / NFP",
+    "LABOR": "Marché du travail",
+    "UOM": "Sentiment UoM",
+}
+
 
 def default_state() -> dict:
     return {
@@ -158,12 +173,13 @@ def default_state() -> dict:
 
 def ensure_state(state: dict) -> dict:
     base = default_state()
+
     if not isinstance(state, dict):
         return base
 
     for k, v in base.items():
         state.setdefault(k, v)
-        
+
     if not isinstance(state["sent_critical_alerts"], list):
         state["sent_critical_alerts"] = []
     if not isinstance(state["sent_reminders"], dict):
@@ -227,6 +243,7 @@ def normalize_event_title(title: str) -> str:
     s = re.sub(r"\s+", " ", s)
     return s
 
+
 def event_family(title: str) -> str:
     t = normalize_event_title(title)
 
@@ -256,11 +273,12 @@ def event_family(title: str) -> str:
     if "unemployment" in t or "jobless" in t:
         return "LABOR"
 
-    # 🔥 AJOUT IMPORTANT (UoM)
+    # UoM
     if "uom" in t or "university of michigan" in t:
         return "UOM"
 
-    return t   # fallback
+    return t
+
 
 def is_critical_event(title: str) -> bool:
     t = normalize_event_title(title)
@@ -296,6 +314,7 @@ def is_critical_event(title: str) -> bool:
         or "testifies" in t
         or "hearing" in t
     )
+
 
 def is_allowed_event(ev: dict) -> bool:
     impact = (ev.get("impact") or "").strip()
@@ -574,6 +593,7 @@ def relevant_assets_for_event(ev: dict) -> list[str]:
     assets = impacted_assets(ev["country"])
     return [a for a in assets if a in WATCHED_ASSETS]
 
+
 def critical_trading_read(ev: dict) -> str:
     title = normalize_event_title(ev.get("title", ""))
     country = (ev.get("country") or "").upper()
@@ -648,6 +668,7 @@ def format_critical_alert(dt_local: datetime, ev: dict) -> str:
         f"{critical_trading_read(ev)}"
     )
 
+
 def format_grouped_critical_alert(group: list[tuple[datetime, dict]]) -> str:
     group = sorted(group, key=lambda x: x[0])
     dt0, ev0 = group[0]
@@ -681,6 +702,7 @@ def format_grouped_critical_alert(group: list[tuple[datetime, dict]]) -> str:
         f"Lecture trading\n"
         f"{critical_trading_read(ev0)}"
     )
+
 
 def is_relevant_event(ev: dict) -> bool:
     return len(relevant_assets_for_event(ev)) > 0
@@ -721,10 +743,17 @@ def format_macro_alert(dt_local: datetime, ev: dict, minutes_left: int) -> str:
         f"Actifs concernés\n{assets_block}"
     )
 
-def format_grouped_macro_alert(dt_local: datetime, country: str, fam: str, group: list[dict], minutes_left: int) -> str:
+
+def format_grouped_macro_alert(
+    dt_local: datetime,
+    country: str,
+    fam: str,
+    group: list[tuple[datetime, dict]],
+    minutes_left: int,
+) -> str:
     lines = []
 
-    for e in group:
+    for _, e in group:
         title_fr = smart_translate_event(e["title"])
         title_en = e["title"]
 
@@ -743,22 +772,28 @@ def format_grouped_macro_alert(dt_local: datetime, country: str, fam: str, group
     items_block = "\n\n".join(lines)
 
     assets = []
-    for e in group:
+    for _, e in group:
         for a in relevant_assets_for_event(e):
             if a not in assets:
                 assets.append(a)
 
     assets_block = "\n".join(f"• {a}" for a in assets) if assets else "• (aucun)"
 
+    if len(group) == 1:
+        family_label = smart_translate_event(group[0][1]["title"])
+    else:
+        family_label = FAMILY_LABELS.get(fam, fam)
+
     return (
         f"🚨 ALERTE MACRO\n\n"
         f"⏰ Dans {minutes_left} min — {dt_local.strftime('%H:%M')} (Paris)\n\n"
-        f"{flag_for_currency(country)} {country}\n\n"
-        f"{fam}\n"
+        f"{flag_for_currency(country)} {country}\n"
+        f"{family_label}\n\n"
         f"{items_block}\n\n"
         f"Actifs concernés\n"
         f"{assets_block}"
     )
+
 
 def parse_ff_number(value):
     if not value:
@@ -913,20 +948,21 @@ def should_send_new_event_alert(now: datetime, dt: datetime, ev: dict) -> bool:
     return False
 
 
-def ensure_state(state):
-    if not isinstance(state, dict):
-        state = {}
+def build_title_groups(events: list[tuple[datetime, dict]]):
+    groups = defaultdict(list)
+    for dt, ev in events:
+        key = (ev["country"], normalize_event_title(ev["title"]))
+        groups[key].append((dt, ev))
+    return groups
 
-    state.setdefault("sent_events", [])
-    state.setdefault("sent_critical_alerts", [])
-    state.setdefault("seen_events", [])
-    state.setdefault("sent_reminders", [])
-    state.setdefault("sent_daily", [])
-    state.setdefault("sent_releases", [])
-    state.setdefault("source_failures", 0)
-    state.setdefault("last_source_alert", None)
 
-    return state
+def build_runtime_groups(events: list[tuple[datetime, dict]]):
+    groups = defaultdict(list)
+    for dt, ev in events:
+        key = (dt, ev["country"], event_family(ev["title"]))
+        groups[key].append((dt, ev))
+    return groups
+
 
 def main():
     state = load_state()
@@ -951,14 +987,7 @@ def main():
         events = fetch_events()
         print("FETCH OK | total filtered events =", len(events))
 
-        from collections import defaultdict
-
-        grouped_events = defaultdict(list)
-
-        # Regroupement correct des events
-        for dt, ev in events:
-            key_group = (ev["country"], normalize_event_title(ev["title"]))
-            grouped_events[key_group].append((dt, ev))
+        title_groups = build_title_groups(events)
 
         # Log de tous les events récupérés
         for dt, ev in events:
@@ -982,13 +1011,9 @@ def main():
         new_events_count = 0
         new_alerts_sent = 0
 
-        for group in grouped_events.values():
+        for (_, _), group in title_groups.items():
             dt, ev = group[0]
             key = event_key(dt, ev)
-
-            if key in state["sent_events"]:
-                print("GLOBAL SKIP DUPLICATE |", key)
-                continue
 
             if key not in seen:
                 new_events_count += 1
@@ -1027,6 +1052,7 @@ def main():
             "NEW EVENTS SUMMARY | found =", new_events_count,
             "| alerts_sent =", new_alerts_sent,
         )
+
     except Exception as e:
         state["source_failures"] = int(state.get("source_failures", 0)) + 1
         print("FETCH ERROR |", type(e).__name__, "|", str(e))
@@ -1053,7 +1079,7 @@ def main():
                 )
                 state["last_source_alert"] = now.isoformat()
                 print("SOURCE ALERT SENT")
-                
+
         state["sent_events"] = state["sent_events"][-500:]
         state["sent_critical_alerts"] = state["sent_critical_alerts"][-500:]
         save_state(state)
@@ -1077,49 +1103,48 @@ def main():
     else:
         print("SUMMARY SKIPPED")
 
-    # 3) Rappels T-15 + releases
+    # 3) Rappels T-15
     reminders_sent_now = 0
-    releases_sent_now = 0
-    
-    from collections import defaultdict
+    runtime_groups = build_runtime_groups(events)
 
-    grouped_events = defaultdict(list)
+    for (dt, country, fam), group in runtime_groups.items():
+        _, ev0 = group[0]
+
+        if not (is_relevant_event(ev0) or ev0["impact"] == "High"):
+            continue
+
+        delta_min = (dt - now).total_seconds() / 60
+        group_key = f"{dt.isoformat()}::{country}::{fam}"
+
+        if 0 <= delta_min <= REMINDER_LEAD_MIN + 2:
+            if group_key not in state["sent_reminders"]:
+                minutes_left = max(0, int((dt - now).total_seconds() / 60))
+
+                msg = format_grouped_macro_alert(
+                    dt_local=dt,
+                    country=country,
+                    fam=fam,
+                    group=group,
+                    minutes_left=minutes_left,
+                )
+
+                print("REMINDER GROUP SENT |", group_key)
+                tg_send(msg)
+                state["sent_reminders"][group_key] = now.isoformat()
+                reminders_sent_now += 1
+
+    # 4) Releases
+    releases_sent_now = 0
 
     for dt, ev in events:
-        key_group = (ev["country"], normalize_event_title(ev["title"]))
-        grouped_events[key_group].append((dt, ev))
-
-    for (country, fam), group in grouped_events.items():
-        ev = group[0]
-        key = event_key(dt, ev)
-
-        # ----- REMINDER -----
-        if is_relevant_event(ev) or ev["impact"] == "High":
-            reminder_time = dt - timedelta(minutes=REMINDER_LEAD_MIN)
-
-            group_key = f"{dt.isoformat()}::{country}::{fam}"
-
-            delta_min = (dt - now).total_seconds() / 60
-
-            if 0 <= delta_min <= REMINDER_LEAD_MIN + 2:
-                if group_key not in state["sent_reminders"]:
-                    minutes_left = max(0, int((dt - now).total_seconds() / 60))
-                    
-                    msg = format_grouped_macro_alert(dt, country, fam, group, minutes_left)
-                    
-                    print("REMINDER GROUP SENT |", group_key)
-
-                    tg_send(msg)
-                    state["sent_reminders"][group_key] = now.isoformat()
-                    reminders_sent_now += 1
-
-        # ----- RELEASE -----
         if now < dt:
             continue
 
         delay_sec = (now - dt).total_seconds()
         if delay_sec > 3600:
             continue
+
+        key = event_key(dt, ev)
 
         if key in state["sent_releases"]:
             continue
@@ -1144,6 +1169,8 @@ def main():
         else:
             print("RELEASE SKIPPED | actual vide pour", key)
 
+    state["sent_events"] = state["sent_events"][-500:]
+    state["sent_critical_alerts"] = state["sent_critical_alerts"][-500:]
     save_state(state)
 
     print(
