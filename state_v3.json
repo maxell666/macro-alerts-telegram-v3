@@ -28,7 +28,6 @@
     "2026-04-15T12:00:00+02:00::USD::president trump speaks",
     "2026-04-21T16:00:00+02:00::USD::fed chairman designate warsh testifies",
     "2026-04-23T15:45:00+02:00::USD::flash services pmi",
-    "2026-04-20T18:40:00+02:00::EUR::ecb president lagarde speaks",
     "2026-04-17T23:00:00+02:00::USD::president trump speaks",
     "2026-04-24T08:00:00+02:00::GBP::retail sales m/m",
     "2026-04-22T19:30:00+02:00::EUR::ecb president lagarde speaks",
@@ -58,7 +57,6 @@
     "2026-04-17T20:00:00+02:00::USD::fomc member waller speaks",
     "2026-04-21T16:00:00+02:00::USD::fed chair designate warsh testifies",
     "2026-04-21T16:00:00+02:00::USD::fed chairman designate warsh testifies",
-    "2026-04-20T18:40:00+02:00::EUR::ecb president lagarde speaks",
     "2026-04-22T19:30:00+02:00::EUR::ecb president lagarde speaks"
   ],
   "source_failures": 0,
