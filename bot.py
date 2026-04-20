@@ -1089,7 +1089,7 @@ def main():
         key_group = (ev["country"], normalize_event_title(ev["title"]))
         grouped_events[key_group].append((dt, ev))
 
-    for (dt, country, fam), group in grouped_events.items():
+    for (country, fam), group in grouped_events.items():
         ev = group[0]
         key = event_key(dt, ev)
 
