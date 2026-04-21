@@ -168,6 +168,7 @@ def default_state() -> dict:
         "sent_critical_alerts": [],
         "source_failures": 0,
         "last_source_alert": None,
+        
     }
 
 
@@ -196,6 +197,8 @@ def ensure_state(state: dict) -> dict:
         state["last_source_alert"] = None
     if not isinstance(state["sent_events"], list):
         state["sent_events"] = []
+    if not isinstance(state.get("sent_weekly"), dict):
+        state["sent_weekly"] = {}
 
     return state
 
@@ -909,6 +912,48 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
     legend = "Légende : 🔥 priorité max | 🚨 très important | ⚠️ impact élevé | 📌 secondaire\n\n"
     return header + legend + "\n".join(lines)
 
+def format_weekly_summary(start_date, events: list[tuple[datetime, dict]]) -> str:
+    end_date = start_date + timedelta(days=6)
+
+    header = (
+        "━━━━━━━━━━━━━━━\n"
+        f"📅 MACRO SEMAINE\n"
+        f"{start_date.strftime('%d/%m')} → {end_date.strftime('%d/%m')}\n\n"
+    )
+
+    week_events = [
+        (dt, ev)
+        for dt, ev in events
+        if start_date <= dt.date() <= end_date
+    ]
+
+    if not week_events:
+        return header + "Aucune annonce pertinente."
+
+    week_events.sort(key=lambda x: (x[0], event_sort_priority(x[1]["title"], x[1]["impact"])))
+
+    lines = []
+    current_day = None
+
+    for dt_local, ev in week_events:
+        day_str = dt_local.strftime('%A %d/%m')
+        if day_str != current_day:
+            current_day = day_str
+            lines.append(f"\n📆 {day_str}")
+
+        impact = ev["impact"]
+        impact_icon = "🔥" if impact == "High" else "🟡"
+
+        title_fr = smart_translate_event(ev["title"])
+        title_en = ev["title"]
+
+        lines.append(
+            f"{impact_icon} {dt_local.strftime('%H:%M')} "
+            f"{ev['country']} {title_fr} ({title_en})"
+        )
+
+    return header + "\n".join(lines)
+
 
 def format_new_event_alert(dt_local: datetime, ev: dict) -> str:
     impact = ev["impact"]
@@ -1105,6 +1150,24 @@ def main():
         print("SUMMARY SENT")
     else:
         print("SUMMARY SKIPPED")
+
+    # 2bis) Résumé hebdomadaire dimanche 21h Paris
+    week_start = now.date()
+
+    print("WEEKLY WINDOW CHECK | week_start =", week_start.isoformat())
+
+    if True:
+        week_key = week_start.isoformat()
+
+        if week_key not in state["sent_weekly"]:
+            print("WEEKLY SUMMARY SEND")
+            tg_send(format_weekly_summary(week_start, events))
+            state["sent_weekly"][week_key] = now.isoformat()
+            print("WEEKLY SUMMARY SENT")
+        else:
+            print("WEEKLY SUMMARY ALREADY SENT")
+    else:
+        print("WEEKLY SUMMARY SKIPPED")
 
     # 3) Rappels T-15
     reminders_sent_now = 0
