@@ -425,35 +425,10 @@ def smart_translate_event(title: str) -> str:
 def event_priority_icon(title: str, impact: str) -> str:
     t = normalize_event_title(title)
 
-    if (
-        "fomc" in t
-        or "federal funds rate" in t
-        or "interest rate" in t
-        or "main refinancing rate" in t
-        or "press conference" in t
-        or "speech" in t
-        or "speaks" in t
-        or "testifies" in t
-        or "hearing" in t
-    ):
-        return "🔥"
+    if any(x in t for x in ["speaks", "speech", "press conference", "testifies", "hearing"]):
+        return "🎙️"
 
-    if (
-        "cpi" in t
-        or "ppi" in t
-        or "pce" in t
-        or "non farm payroll" in t
-        or t == "nfp"
-        or "unemployment" in t
-        or "gdp" in t
-        or "retail sales" in t
-    ):
-        return "🚨"
-
-    if (impact or "").upper() == "HIGH":
-        return "⚠️"
-
-    return "📌"
+    return "📊"
 
 
 def event_sort_priority(title: str, impact: str) -> int:
@@ -727,6 +702,8 @@ def format_macro_alert(dt_local: datetime, ev: dict, minutes_left: int) -> str:
 
     title_fr = smart_translate_event(title)
     icon = event_priority_icon(title, impact)
+    impact_label = "🔥 HIGH IMPACT" if impact == "High" else "⚠️ MEDIUM IMPACT"
+    type_label = "🎙️ Discours / Banque centrale" if is_critical_event(title) else "📊 Donnée macro"
 
     forecast = ev.get("forecast") or ""
     previous = ev.get("previous") or ""
@@ -741,7 +718,10 @@ def format_macro_alert(dt_local: datetime, ev: dict, minutes_left: int) -> str:
     assets_block = "\n".join(f"• {a}" for a in assets) if assets else "• (aucun)"
 
     return (
+        "━━━━━━━━━━━━━━━\n"
         f"{icon} ALERTE MACRO\n\n"
+        f"{impact_label}\n\n"
+        f"{type_label}\n\n"
         f"⏰ Dans {minutes_left} min — {dt_local.strftime('%H:%M')} (Paris)\n\n"
         f"{flag_for_currency(cur)} {cur}\n"
         f"{title_fr}\n"
@@ -791,8 +771,16 @@ def format_grouped_macro_alert(
     else:
         family_label = FAMILY_LABELS.get(fam, fam)
 
+    impact = group[0][1]["impact"]
+    impact_label = "🔥 HIGH IMPACT" if impact == "High" else "⚠️ MEDIUM IMPACT"
+    type_label = "🎙️ Discours / Banque centrale" if is_critical_event(group[0][1]["title"]) else "📊 Donnée macro"
+    icon = event_priority_icon(group[0][1]["title"], impact)
+
     return (
-        f"🚨 ALERTE MACRO\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        f"{icon} ALERTE MACRO\n\n"
+        f"{impact_label}\n\n"
+        f"{type_label}\n\n"
         f"⏰ Dans {minutes_left} min — {dt_local.strftime('%H:%M')} (Paris)\n\n"
         f"{flag_for_currency(country)} {country}\n"
         f"{family_label}\n\n"
@@ -924,20 +912,28 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
 
 
 def format_new_event_alert(dt_local: datetime, ev: dict) -> str:
-    impact_label = "🚨 HIGH IMPACT" if ev["impact"] == "High" else "⚠️ NOUVEL ÉVÉNEMENT"
-    title_fr = smart_translate_event(ev["title"])
+    impact = ev["impact"]
+    title = ev["title"]
+    title_fr = smart_translate_event(title)
+
+    impact_label = "🔥 HIGH IMPACT" if impact == "High" else "⚠️ MEDIUM IMPACT"
+    type_label = "🎙️ Discours / Banque centrale" if is_critical_event(title) else "📊 Donnée macro"
+    icon = event_priority_icon(title, impact)
 
     msg = (
+        "━━━━━━━━━━━━━━━\n"
         "🆕 ANNONCE AJOUTÉE EN COURS DE JOURNÉE\n\n"
+        f"{icon} ALERTE MACRO\n\n"
         f"{impact_label}\n\n"
+        f"{type_label}\n\n"
         f"{flag_for_currency(ev['country'])} {ev['country']}\n"
         f"{title_fr}\n"
-        f"({ev['title']})\n\n"
+        f"({title})\n\n"
         f"📅 {dt_local.strftime('%d/%m')}\n"
         f"🕒 {dt_local.strftime('%H:%M')} (Paris)"
     )
 
-    if is_critical_event(ev["title"]):
+    if is_critical_event(title):
         msg += "\n\n🔥 Événement potentiellement très volatil."
 
     return msg
