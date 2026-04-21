@@ -547,15 +547,7 @@ def fetch_events() -> list[tuple[datetime, dict]]:
         previous = (ev.findtext("previous") or "").strip()
         actual = (ev.findtext("actual") or "").strip()
         
-        print(
-            "DEBUG XML |",
-            title,
-            "| impact =", impact,
-            "| actual =", repr(actual),
-            "| forecast =", repr(forecast),
-            "| previous =", repr(previous),
-        )
-
+        
         if country not in ALLOWED_CURRENCIES:
             continue
 
