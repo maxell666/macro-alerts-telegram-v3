@@ -724,8 +724,7 @@ def format_macro_alert(dt_local: datetime, ev: dict, minutes_left: int) -> str:
         f"{type_label}\n\n"
         f"⏰ Dans {minutes_left} min — {dt_local.strftime('%H:%M')} (Paris)\n\n"
         f"{flag_for_currency(cur)} {cur}\n"
-        f"{title_fr}\n"
-        f"({title})"
+        f"{title_fr} ({title})"
         f"{values}\n\n"
         f"Actifs concernés\n{assets_block}"
     )
@@ -772,8 +771,8 @@ def format_grouped_macro_alert(
         family_label = FAMILY_LABELS.get(fam, fam)
 
     impact = group[0][1]["impact"]
-    impact_label = "🔥 HIGH IMPACT" if impact == "High" else "⚠️ MEDIUM IMPACT"
-    type_label = "🎙️ Discours / Banque centrale" if is_critical_event(group[0][1]["title"]) else "📊 Donnée macro"
+    impact_label = "🔥 HIGH IMPACT" if impact == "High" else "🟡 MEDIUM IMPACT"
+    type_label = "Discours / Banque centrale" if is_critical_event(group[0][1]["title"]) else "Donnée macro"
     icon = event_priority_icon(group[0][1]["title"], impact)
 
     return (
