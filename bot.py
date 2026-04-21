@@ -703,6 +703,12 @@ def format_grouped_critical_alert(group: list[tuple[datetime, dict]]) -> str:
         f"{critical_trading_read(ev0)}"
     )
 
+def format_new_grouped_critical_alert(group: list[tuple[datetime, dict]]) -> str:
+    return (
+        "🆕 ANNONCE AJOUTÉE EN COURS DE JOURNÉE\n\n"
+        + format_grouped_critical_alert(group)
+    )
+
 
 def is_relevant_event(ev: dict) -> bool:
     return len(relevant_assets_for_event(ev)) > 0
@@ -1030,12 +1036,13 @@ def main():
 
                 if is_critical_event(ev["title"]):
                     if key not in state["sent_critical_alerts"]:
-                        msg = format_grouped_critical_alert(group)
+                        msg = format_new_grouped_critical_alert(group)
                         print("CRITICAL ALERT SENT |", key)
                         print("CRITICAL MSG PREVIEW:\n", msg)
                         tg_send(msg)
                         state["sent_critical_alerts"].append(key)
                         new_alerts_sent += 1
+   
                 else:
                     if should_send_new_event_alert(now, dt, ev):
                         msg = format_new_event_alert(dt, ev)
