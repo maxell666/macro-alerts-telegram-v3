@@ -1156,7 +1156,7 @@ def main():
 
     print("WEEKLY WINDOW CHECK | week_start =", week_start.isoformat())
 
-    if True:
+    if now.weekday() == 6 and now.hour == 21 and now.minute <= 15:
         week_key = week_start.isoformat()
 
         if week_key not in state["sent_weekly"]:
