@@ -939,7 +939,7 @@ def format_weekly_summary(start_date, events: list[tuple[datetime, dict]]) -> st
         day_str = dt_local.strftime('%A %d/%m')
         if day_str != current_day:
             current_day = day_str
-            lines.append(f"\n📆 {day_str}")
+            lines.append(f"\n📆 *{day_str}*")
 
         impact = ev["impact"]
         impact_icon = "🔥" if impact == "High" else "🟡"
