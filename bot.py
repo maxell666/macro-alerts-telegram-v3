@@ -232,6 +232,7 @@ def tg_send(text: str) -> None:
             "chat_id": CHAT_ID,
             "text": text,
             "disable_web_page_preview": True,
+            "parse_mode": "Markdown",
         },
         timeout=20,
     )
