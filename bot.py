@@ -769,15 +769,16 @@ def format_grouped_macro_alert(
 
     assets_block = "\n".join(f"• {a}" for a in assets) if assets else "• (aucun)"
 
-    if len(group) == 1:
-        family_label = smart_translate_event(group[0][1]["title"])
-    else:
-        family_label = FAMILY_LABELS.get(fam, fam)
-
     impact = group[0][1]["impact"]
     impact_label = "🔥 HIGH IMPACT" if impact == "High" else "🟡 MEDIUM IMPACT"
     type_label = "Discours / Banque centrale" if is_critical_event(group[0][1]["title"]) else "Donnée macro"
     icon = event_priority_icon(group[0][1]["title"], impact)
+
+    if len(group) == 1:
+        title_block = ""
+    else:
+        family_label = FAMILY_LABELS.get(fam, fam)
+        title_block = f"{family_label}\n\n"
 
     return (
         "━━━━━━━━━━━━━━━\n"
@@ -786,7 +787,7 @@ def format_grouped_macro_alert(
         f"{type_label}\n\n"
         f"⏰ Dans {minutes_left} min — {dt_local.strftime('%H:%M')} (Paris)\n\n"
         f"{flag_for_currency(country)} {country}\n"
-        f"{family_label}\n\n"
+        f"{title_block}"
         f"{items_block}\n\n"
         f"Actifs concernés\n"
         f"{assets_block}"
