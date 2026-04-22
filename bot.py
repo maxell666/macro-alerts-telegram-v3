@@ -900,19 +900,21 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
         title = ev["title"]
 
         title_fr = smart_translate_event(title)
+        type_icon = event_priority_icon(title, impact)
+        impact_icon = "🔥" if impact == "High" else "🟡"
         icon = event_priority_icon(title, impact)
 
         assets = relevant_assets_for_event(ev)
         assets_str = ", ".join(assets) if assets else "-"
 
         lines.append(
-            f"{icon} {dt_local.strftime('%H:%M')} {cur} "
-            f"{title_fr} ({title}) ({assets_str})"
+            f"{impact_icon} {type_icon} {dt_local.strftime('%H:%M')} {cur}\n"
+            f"{title_fr} ({title})\n"
+            f"({assets_str})"
         )
 
-    legend = "Légende : 🔥 priorité max | 🚨 très important | ⚠️ impact élevé | 📌 secondaire\n\n"
-    return header + legend + "\n".join(lines)
-
+    return header + "\n".join(lines)
+    
 def format_weekly_summary(start_date, events: list[tuple[datetime, dict]]) -> str:
     end_date = start_date + timedelta(days=6)
 
