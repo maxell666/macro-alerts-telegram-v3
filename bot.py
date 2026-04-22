@@ -885,7 +885,7 @@ def format_release_alert(dt_local: datetime, ev: dict) -> str:
 
 
 def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
-    header = f"🗓️ Macro de demain — {day.strftime('%d/%m/%Y')}\n\n"
+    header = f"━━━━━━━━━━━━━━━\n🗓️ MACRO DE DEMAIN — {day.strftime('%d/%m/%Y')}\n\n"
 
     day_events = [(dt, ev) for dt, ev in events if dt.date() == day]
 
@@ -895,6 +895,7 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
     day_events.sort(key=lambda x: (x[0], event_sort_priority(x[1]["title"], x[1]["impact"])))
 
     lines = []
+
     for dt_local, ev in day_events:
         cur = ev["country"]
         impact = ev["impact"]
@@ -903,7 +904,6 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
         title_fr = smart_translate_event(title)
         type_icon = event_priority_icon(title, impact)
         impact_icon = "🔥" if impact == "High" else "🟡"
-        icon = event_priority_icon(title, impact)
 
         assets = relevant_assets_for_event(ev)
         assets_str = ", ".join(assets) if assets else "-"
@@ -914,7 +914,7 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
             f"({assets_str})"
         )
 
-    return header + "\n".join(lines)
+    return header + "\n\n".join(lines)
     
 def format_weekly_summary(start_date, events: list[tuple[datetime, dict]]) -> str:
     end_date = start_date + timedelta(days=6)
@@ -941,19 +941,27 @@ def format_weekly_summary(start_date, events: list[tuple[datetime, dict]]) -> st
 
     for dt_local, ev in week_events:
         day_str = dt_local.strftime('%A %d/%m')
+
         if day_str != current_day:
             current_day = day_str
             lines.append(f"\n📆 *{day_str}*")
 
         impact = ev["impact"]
-        impact_icon = "🔥" if impact == "High" else "🟡"
+        title = ev["title"]
 
-        title_fr = smart_translate_event(ev["title"])
+        impact_icon = "🔥" if impact == "High" else "🟡"
+        type_icon = event_priority_icon(title, impact)
+
+        title_fr = smart_translate_event(title)
         title_en = ev["title"]
 
+        assets = relevant_assets_for_event(ev)
+        assets_str = ", ".join(assets) if assets else "-"
+
         lines.append(
-            f"{impact_icon} {dt_local.strftime('%H:%M')} "
-            f"{ev['country']} {title_fr} ({title_en})"
+            f"{impact_icon} {type_icon} {dt_local.strftime('%H:%M')} {ev['country']}\n"
+            f"{title_fr} ({title_en})\n"
+            f"({assets_str})"
         )
 
     return header + "\n".join(lines)
