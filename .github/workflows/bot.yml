@@ -3,6 +3,13 @@ name: Macro Alerts V3
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: macro-alerts-v3-state
+  cancel-in-progress: false
+
 jobs:
   bot:
     runs-on: ubuntu-latest
@@ -10,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -34,6 +43,15 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+
           git add state_v3.json
-          git commit -m "update state" || echo "no changes"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "no changes"
+            exit 0
+          fi
+
+          git commit -m "update state"
+
+          git pull --rebase origin main
+          git push origin main
