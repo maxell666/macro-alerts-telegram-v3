@@ -69,6 +69,21 @@ MACRO_EXPLAIN = {
     "FOMC": "Décision de politique monétaire de la Réserve fédérale.",
 }
 
+HOLIDAY_TRANSLATIONS = {
+    "bank holiday": "Jour férié bancaire",
+    "french bank holiday": "Jour férié bancaire en France",
+    "german bank holiday": "Jour férié bancaire en Allemagne",
+    "italian bank holiday": "Jour férié bancaire en Italie",
+    "spanish bank holiday": "Jour férié bancaire en Espagne",
+    "uk bank holiday": "Jour férié bancaire au Royaume-Uni",
+    "us bank holiday": "Jour férié bancaire aux États-Unis",
+    "memorial day": "Memorial Day — banques/marchés US partiellement fermés",
+    "christmas day": "Noël — jour férié",
+    "new year's day": "Nouvel An — jour férié",
+    "good friday": "Vendredi saint — jour férié",
+    "easter monday": "Lundi de Pâques — jour férié",
+}
+
 MACRO_DIRECTION = {
     # inflation
     "CPI": -1,
@@ -320,6 +335,19 @@ def is_critical_event(title: str) -> bool:
     )
 
 
+def is_bank_holiday_event(ev: dict) -> bool:
+    """True pour les jours fériés / bank holidays à garder dans les résumés."""
+    title = normalize_event_title(ev.get("title", ""))
+    impact = (ev.get("impact") or "").strip().lower()
+
+    return (
+        "holiday" in title
+        or "bank holiday" in title
+        or "memorial day" in title
+        or impact == "holiday"
+    )
+
+
 def is_allowed_event(ev: dict) -> bool:
     impact = (ev.get("impact") or "").strip()
     currency = (ev.get("country") or "").strip().upper()
@@ -327,11 +355,24 @@ def is_allowed_event(ev: dict) -> bool:
     if currency not in {"USD", "EUR", "GBP"}:
         return False
 
+    # IMPORTANT trading:
+    # ForexFactory classe souvent les bank holidays en impact "Holiday"
+    # et parfois avec une heure "All Day". Avant, ils étaient filtrés ici,
+    # donc absents du résumé de 22h.
+    if is_bank_holiday_event(ev):
+        return True
+
     return impact in {"High", "Medium"}
 
 
 def smart_translate_event(title: str) -> str:
     key = normalize_event_title(title)
+
+    if key in HOLIDAY_TRANSLATIONS:
+        return HOLIDAY_TRANSLATIONS[key]
+    for holiday_key, holiday_label in HOLIDAY_TRANSLATIONS.items():
+        if holiday_key in key:
+            return holiday_label
 
     if key in EXACT_TRANSLATIONS:
         return EXACT_TRANSLATIONS[key]
@@ -438,6 +479,9 @@ def event_priority_icon(title: str, impact: str) -> str:
 def event_sort_priority(title: str, impact: str) -> int:
     t = normalize_event_title(title)
 
+    if "holiday" in t or "memorial day" in t or (impact or "").strip().lower() == "holiday":
+        return -1
+
     if (
         "fomc" in t
         or "federal funds rate" in t
@@ -537,12 +581,26 @@ def fetch_events() -> list[tuple[datetime, dict]]:
             "forecast": forecast,
             "previous": previous,
             "actual": actual,
+            "time_raw": time_s,
+            "all_day": False,
         }
 
         if not is_allowed_event(event_data):
             continue
 
         dt = parse_ff_datetime(date_s, time_s)
+
+        # Les bank holidays sont souvent "All Day" / "Day".
+        # On leur donne une heure technique 00:00 Paris pour qu'ils restent
+        # visibles dans les résumés quotidien/hebdomadaire.
+        if dt is None and is_bank_holiday_event(event_data):
+            try:
+                d = datetime.strptime(date_s, "%m-%d-%Y").date()
+                dt = datetime.combine(d, datetime.min.time()).replace(tzinfo=TZ)
+                event_data["all_day"] = True
+            except ValueError:
+                continue
+
         if dt is None:
             continue
 
@@ -902,6 +960,16 @@ def format_daily_summary(day, events: list[tuple[datetime, dict]]) -> str:
         title = ev["title"]
 
         title_fr = smart_translate_event(title)
+
+        if is_bank_holiday_event(ev):
+            time_label = "Toute la journée" if ev.get("all_day") else dt_local.strftime("%H:%M")
+            lines.append(
+                f"🏦 {time_label} {cur}\n"
+                f"{title_fr} ({title})\n"
+                f"⚠️ Liquidité réduite / spreads possibles / mouvements parfois irréguliers"
+            )
+            continue
+
         type_icon = event_priority_icon(title, impact)
         impact_icon = "🔥" if impact == "High" else "🟡"
 
@@ -949,11 +1017,20 @@ def format_weekly_summary(start_date, events: list[tuple[datetime, dict]]) -> st
         impact = ev["impact"]
         title = ev["title"]
 
-        impact_icon = "🔥" if impact == "High" else "🟡"
-        type_icon = event_priority_icon(title, impact)
-
         title_fr = smart_translate_event(title)
         title_en = ev["title"]
+
+        if is_bank_holiday_event(ev):
+            time_label = "Toute la journée" if ev.get("all_day") else dt_local.strftime("%H:%M")
+            lines.append(
+                f"🏦 {time_label} {ev['country']}\n"
+                f"{title_fr} ({title_en})\n"
+                f"⚠️ Liquidité réduite / spreads possibles"
+            )
+            continue
+
+        impact_icon = "🔥" if impact == "High" else "🟡"
+        type_icon = event_priority_icon(title, impact)
 
         assets = relevant_assets_for_event(ev)
         assets_str = ", ".join(assets) if assets else "-"
@@ -1188,6 +1265,9 @@ def main():
     for (dt, country, fam), group in runtime_groups.items():
         _, ev0 = group[0]
 
+        if is_bank_holiday_event(ev0):
+            continue
+
         if not (is_relevant_event(ev0) or ev0["impact"] == "High"):
             continue
 
@@ -1215,6 +1295,9 @@ def main():
     releases_sent_now = 0
 
     for dt, ev in events:
+        if is_bank_holiday_event(ev):
+            continue
+
         if now < dt:
             continue
 
