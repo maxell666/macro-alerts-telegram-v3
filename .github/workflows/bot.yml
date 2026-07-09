@@ -20,6 +20,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Pull latest state before run
+        run: |
+          git pull --rebase origin main
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -52,6 +56,4 @@ jobs:
           fi
 
           git commit -m "update state"
-
-          git pull --rebase origin main
           git push origin main
