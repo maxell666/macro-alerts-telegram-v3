@@ -737,7 +737,7 @@
     "2026-08-19T20:00:00+02:00::USD::fomc meeting minutes",
     "2026-08-20T14:30:00+02:00::USD::philly fed manufacturing index"
   ],
-  "source_failures": 0,
+  "source_failures": 1,
   "last_source_alert": "2026-04-20T12:30:27.457449+02:00",
   "sent_weekly": {
     "2026-04-21": "2026-04-21T18:13:30.848537+02:00",
